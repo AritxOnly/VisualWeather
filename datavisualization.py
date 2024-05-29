@@ -80,13 +80,13 @@ def mainFunc(city: Where, feature: GraphType = GraphType.Null,
         weather = getWeather(url)
         weathers.append(weather)
     writeCsv(weathers)
-    print(weathers)
+    # print(weathers)
 
     # 主要功能
     data = pd.read_csv('weather.csv', encoding='gbk')
 
     match feature:
-        case GraphType.RangeBarChart:
+        case GraphType.RangeBarChart:   # 1
             # 遍历weathers
             stat = [0 for i in range(12)]   # 列表存储每月满足温度范围在18-26的天数
             for index, row in data.iterrows():
@@ -99,7 +99,7 @@ def mainFunc(city: Where, feature: GraphType = GraphType.Null,
             chart.add_yaxis('天数(单位:天)', stat)
             chart.set_series_opts(label_opts=opts.LabelOpts(formatter='{b}:{c}'))
         
-        case GraphType.RangePieChart:
+        case GraphType.RangePieChart:   # 2
             # 遍历weathers
             stat = [0 for i in range(12)]   # 列表存储每月最高温超过30度或者最低温低于5度的天数
             for index, row in data.iterrows():
@@ -112,7 +112,7 @@ def mainFunc(city: Where, feature: GraphType = GraphType.Null,
             chart.add('', [list(z) for z in zip(months, stat)])
             chart.set_series_opts(label_opts=opts.LabelOpts(formatter='{b}:{c}'))
         
-        case GraphType.LineChart:
+        case GraphType.LineChart:   # 3
             # 遍历weathers
             stat = [0 for i in range(12)]   # 列表存储每月日温差大于10的天数
             for index, row in data.iterrows():
@@ -139,8 +139,85 @@ def mainFunc(city: Where, feature: GraphType = GraphType.Null,
                             symbol='circle', is_symbol_show=True, symbol_size=8)
             chart.add_yaxis(y_axis=l_temp_list, series_name='最低温', 
                             symbol='pin', is_symbol_show=True, symbol_size=8)
+            
+        case GraphType.WordCloud:   # 4
+            # 遍历weathers
+            stat = {}   # 用字典存储词频信息
+            for index, row in data.iterrows():
+                keywords = row['天气'].split('~')
+                for keyword in keywords:
+                    if not keyword in stat.keys():
+                        stat[keyword] = 0   # 键不存在，创建一个
+                    stat[keyword] += 1
+            words = []  # 词频格式转化
+            for key in stat.keys():
+                words.append((key, stat[key]))
+            chart = pc.WordCloud()
+            chart.add(series_name='气象状况词云', data_pair=words, 
+                      textstyle_opts=opts.TextStyleOpts(font_family='Microsoft Yahei', 
+                                                        font_weight='bold'))
+        
+        case GraphType.Cmp3DChart:  # 5
+            stat = [[] for i in range(12)]   # 元组的列表存储每月每天平均温度信息
+            # 遍历weathers
+            for index, row in data.iterrows():
+                date, h_temp, l_temp = row['日期'], int(row['最高气温']), int(row['最低气温'])
+                y, m, d = [int(i) for i in date.split('-')]
+                aver_temp = float(format((h_temp + l_temp) / 2, '.2f'))
+                stat[m - 1].append((d, aver_temp))
+            chart = pc.Bar3D()
+            for m in range(12):
+                y_data = [day for day in range(31)]
+                data = [(i, stat[i][j][0], stat[i][j][1]) for i in range(12) for j in range(len(stat[i]))]
+                chart.add('', data, xaxis3d_opts=opts.Axis3DOpts(months), yaxis3d_opts=opts.Axis3DOpts(y_data))
+            chart.set_global_opts(visualmap_opts=opts.VisualMapOpts(is_show=True, min_=-10, max_=45))
 
-    
+        case GraphType.Heatmap:  # 6
+            # 用二维列表记录各平均温度
+            stat = []
+            for i in range(7):
+                stat.append([0 for t in range(12)])
+            # 遍历weathers
+            for index, row in data.iterrows():
+                date, h_temp, l_temp = row['日期'], int(row['最高气温']), int(row['最低气温'])
+                y, m, d = [int(i) for i in date.split('-')]
+                aver_temp = (h_temp + l_temp) / 2
+                if aver_temp < 0:   # 平均气温低于0度
+                    stat[0][m - 1] += 1
+                elif 0 <= aver_temp < 5:
+                    stat[1][m - 1] += 1
+                elif 5 <= aver_temp < 10:
+                    stat[2][m - 1] += 1
+                elif 10 <= aver_temp < 15:
+                    stat[3][m - 1] += 1
+                elif 15 <= aver_temp < 20:
+                    stat[4][m - 1] += 1
+                elif 20 <= aver_temp < 30:
+                    stat[5][m - 1] += 1
+                else:
+                    stat[6][m - 1] += 1
+            chart = pc.HeatMap()
+            chart.add_xaxis(['<0°', '0°-5°', '5°-10°', '10°-15°', '15°-20°', '20°-30°', '>30°'])
+            chart.add_yaxis(series_name='', 
+                            yaxis_data=months, 
+                            value=[[i, j, stat[i][j]] for i in range(7) for j in range(12)])
+            chart.set_global_opts(visualmap_opts=opts.VisualMapOpts(min_=-20, max_=45))
+
+        case GraphType.CmpBarChart:
+            stat = []   # 用列表记录各月平均温度
+            # 遍历weathers
+            for index, row in data.iterrows():
+                date, h_temp, l_temp = row['日期'], int(row['最高气温']), int(row['最低气温'])
+                y, m, d = [int(i) for i in date.split('-')]
+                aver_temp = (h_temp + l_temp) / 2
+                if len(stat) < m:
+                    stat.append(aver_temp)
+                else:
+                    stat[m - 1] = (stat[m - 1] + aver_temp) / 2
+            chart = pc.Bar()
+            chart.add_xaxis(months)
+            chart.add_yaxis('温度(单位:℃)', [int(temp) for temp in stat])
+
     # 渲染图表
     chart.render()
     display = ChartDisplay(parent)

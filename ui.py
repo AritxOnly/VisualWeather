@@ -26,6 +26,8 @@ class UserInterface(QDialog):
     def __init__(self, parent: QWidget | None = None, 
                  flags: Qt.WindowType = Qt.WindowType.Dialog) -> None:
         super().__init__(parent, flags)
+        self.setWindowTitle('Visual Weather')
+        self.setWindowIcon(QIcon('res/logo.png'))
         self.setupUi()
         self.setInteraction()
 
@@ -42,7 +44,7 @@ class UserInterface(QDialog):
         dateWidget = QWidget(self)
         dateLayout = QHBoxLayout()
         self.yearBox = QComboBox()
-        self.yearBox.addItems(['2022', '2023'])
+        self.yearBox.addItems(['2021', '2022', '2023', '2024'])
         self.yearLabel = QLabel('年')
         self.monthBox = QComboBox()
         dateLayout.addWidget(self.yearBox)
@@ -70,10 +72,16 @@ class UserInterface(QDialog):
         self.setLayout(mainFrame)
         self.setFixedSize(500, 335)
 
+        self.yearBox.setCurrentIndex(2)
+
     def setInteraction(self):
         self.btnRangePieChart.clicked.connect(self.generateRangePieChart)
         self.btnRangeBarChart.clicked.connect(self.generateRangeBarChart)
         self.btnLineChart.clicked.connect(self.generateLineChart)
+        self.btnWordCloud.clicked.connect(self.generateWordCloud)
+        self.btnCmp3DChart.clicked.connect(self.generateCmp3DChart)
+        self.btnHeatmap.clicked.connect(self.generateHeatmap)
+        self.btnCmpBarChart.clicked.connect(self.generateCmpBarChart)
 
     def getCustomization(self):
         city_index = self.citiesBox.currentIndex()
@@ -94,12 +102,33 @@ class UserInterface(QDialog):
         import datavisualization as dv
         city_index, year = self.getCustomization()
         dv.mainFunc(indexToCity(city_index), dv.GraphType.LineChart, year, self)
+    
+    def generateWordCloud(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.WordCloud, year, self)
+
+    def generateCmp3DChart(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.Cmp3DChart, year, self)
+
+    def generateHeatmap(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.Heatmap, year, self)
+
+    def generateCmpBarChart(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.CmpBarChart, year, self)
 
 
 class ChartDisplay(QMainWindow):
     def __init__(self, parent: QWidget | None = None, 
                  flags: Qt.WindowType = Qt.WindowType.Window) -> None:
         super().__init__(parent, flags)
+        self.setWindowTitle('Data Analysis')
         self.setupUi()
 
     def setupUi(self):
