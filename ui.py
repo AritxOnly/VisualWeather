@@ -1,9 +1,24 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import *
 from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-from datavisualization import Where
+def indexToCity(index: int):
+    from datavisualization import Where
+    match index:
+        case 0:
+            return Where.Nanjing
+        case 1:
+            return Where.Beijing
+        case 2:
+            return Where.Shanghai
+        case 3:
+            return Where.Guangzhou
+        case 4:
+            return Where.Wuhan
+        case 5:
+            return Where.Lichuan
 
 class UserInterface(QDialog):
     cities = ['南京', '北京', '上海', '广州', '武汉', '利川']
@@ -12,6 +27,7 @@ class UserInterface(QDialog):
                  flags: Qt.WindowType = Qt.WindowType.Dialog) -> None:
         super().__init__(parent, flags)
         self.setupUi()
+        self.setInteraction()
 
     def setupUi(self):
         # 初始化UI框架
@@ -26,33 +42,75 @@ class UserInterface(QDialog):
         dateWidget = QWidget(self)
         dateLayout = QHBoxLayout()
         self.yearBox = QComboBox()
-        self.yearBox.addItems(['2022', '2023', '2024'])
+        self.yearBox.addItems(['2022', '2023'])
         self.yearLabel = QLabel('年')
         self.monthBox = QComboBox()
-        self.monthBox.addItems([str(i) for i in range(1, 13, 1)])
-        self.monthLabel = QLabel('月')
         dateLayout.addWidget(self.yearBox)
         dateLayout.addWidget(self.yearLabel)
-        dateLayout.addWidget(self.monthBox)
-        dateLayout.addWidget(self.monthLabel)
         dateWidget.setLayout(dateLayout)
 
         mainFrame.addWidget(dateWidget)
 
-        self.btnLineChart = QPushButton('生成单月气温分析图（折线）')
-        self.btnCmp3DChart = QPushButton('生成年气温变化分析图（3D）')
-        self.btnCmpBarChart = QPushButton('生成年平均气温比较图（条形）')
-        self.btnCondBarChartM = QPushButton('生成月气象状况统计（条形）')
-        self.btnCondBarChartY = QPushButton('生成年气象状况统计（条形）')
-        self.btnCondPieChartM = QPushButton('生成月气象状况统计（扇形）')
-        self.btnCondPieChartY = QPushButton('生成年气象状况统计（扇形）')
+        self.btnRangeBarChart = QPushButton('生成月温度范围在18-26的天数统计柱状图')    # 1
+        self.btnRangePieChart = QPushButton('生成高温天气或低温天气统计饼图')    # 2
+        self.btnLineChart = QPushButton('生成温差最大月气温分析图') # 3
+        self.btnWordCloud = QPushButton('生成年天气状况描述词云图') # 4
+        self.btnCmp3DChart = QPushButton('生成年气温变化分析图（3D）')  # 5
+        self.btnHeatmap = QPushButton('生成气温热力图')   # 6
+        self.btnCmpBarChart = QPushButton('生成年平均气温比较图（条形）')   # 7
+        
+        mainFrame.addWidget(self.btnRangeBarChart)
+        mainFrame.addWidget(self.btnRangePieChart)
         mainFrame.addWidget(self.btnLineChart)
+        mainFrame.addWidget(self.btnWordCloud)
         mainFrame.addWidget(self.btnCmp3DChart)
+        mainFrame.addWidget(self.btnHeatmap)
         mainFrame.addWidget(self.btnCmpBarChart)
-        mainFrame.addWidget(self.btnCondBarChartM)
-        mainFrame.addWidget(self.btnCondBarChartY)
-        mainFrame.addWidget(self.btnCondPieChartM)
-        mainFrame.addWidget(self.btnCondPieChartY)
 
         self.setLayout(mainFrame)
-        self.setFixedSize(self.size())
+        self.setFixedSize(500, 335)
+
+    def setInteraction(self):
+        self.btnRangePieChart.clicked.connect(self.generateRangePieChart)
+        self.btnRangeBarChart.clicked.connect(self.generateRangeBarChart)
+        self.btnLineChart.clicked.connect(self.generateLineChart)
+
+    def getCustomization(self):
+        city_index = self.citiesBox.currentIndex()
+        year = self.yearBox.currentText()
+        return city_index, year
+
+    def generateRangePieChart(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.RangePieChart, year, self)
+    
+    def generateRangeBarChart(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.RangeBarChart, year, self)
+
+    def generateLineChart(self):
+        import datavisualization as dv
+        city_index, year = self.getCustomization()
+        dv.mainFunc(indexToCity(city_index), dv.GraphType.LineChart, year, self)
+
+
+class ChartDisplay(QMainWindow):
+    def __init__(self, parent: QWidget | None = None, 
+                 flags: Qt.WindowType = Qt.WindowType.Window) -> None:
+        super().__init__(parent, flags)
+        self.setupUi()
+
+    def setupUi(self):
+        self.setMinimumSize(920, 540)
+        self.webView = QWebEngineView(self)
+        self.setCentralWidget(self.webView)
+
+    def setHtml(self, html: str):
+        with open(html, 'r', encoding='utf-8') as htmlFile:
+            # htmlLines = htmlFile.readlines()
+            # htmlContent = '\n'.join(line for line in htmlLines)
+            htmlContent = htmlFile.read()
+        self.webView.setHtml(htmlContent)
+        
