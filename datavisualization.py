@@ -54,6 +54,26 @@ def generateUrl(city: Where, year: str, month: str) -> str:
     url = f'https://lishi.tianqi.com/{cityName}/{weatherTime}.html'
     return url
 
+def generateWindowTitle(city: Where, feature: GraphType):
+    cities = {Where.Nanjing: '南京', Where.Beijing:'北京', 
+              Where.Shanghai: '上海', Where.Guangzhou: '广州', 
+              Where.Wuhan: '武汉', Where.Lichuan: '利川'}
+    match feature:
+        case GraphType.RangeBarChart:
+            return f'{cities[city]}市月温度范围在18-26的天数统计柱状图'
+        case GraphType.RangePieChart:
+            return f'{cities[city]}市极端天气统计饼图'
+        case GraphType.LineChart:
+            return f'{cities[city]}市温差最大月气温分析图'
+        case GraphType.WordCloud:
+            return f'{cities[city]}市年天气状况描述词云图'
+        case GraphType.Cmp3DChart:
+            return f'{cities[city]}市年气温变化分析图（3D）'
+        case GraphType.Heatmap:
+            return f'{cities[city]}市气温热力图'
+        case GraphType.CmpBarChart:
+            return f'{cities[city]}市年平均气温比较图'
+
 def writeCsv(weathers: list) -> None:
     with open('weather.csv', 'w', newline='', encoding='gbk') as csvfile:
         writer = csv.writer(csvfile)
@@ -222,6 +242,7 @@ def mainFunc(city: Where, feature: GraphType = GraphType.Null,
     chart.render()
     display = ChartDisplay(parent)
     display.setHtml('render.html')
+    display.setWindowTitle(generateWindowTitle(city=city, feature=feature))
     display.show()
 
 if __name__ == '__main__':
